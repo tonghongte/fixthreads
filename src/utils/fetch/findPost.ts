@@ -146,12 +146,12 @@ async function findPost({
     images = postObj.post.carousel_media.map((item: any) => {
       if (item.video_versions !== null && item.video_versions.length > 0) {
         vidData.push({ url: item.video_versions[0].url, type: "instagram" });
-        return;
+        return undefined;
       }
       return {
         url: item.image_versions2.candidates[0].url,
       };
-    });
+    }).filter(Boolean);
     imgType = "carousel";
   } else if (
     postObj.post.text_post_app_info.link_preview_attachment &&
