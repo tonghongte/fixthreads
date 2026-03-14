@@ -14,11 +14,15 @@ ghcr.io/milanmdev/fixthreads:latest
 
 ## 2. 準備主機目錄與設定檔
 
-```bash
-mkdir -p /opt/fixthreads/config /opt/fixthreads/generated
+> 以下為 Windows（Docker Desktop）環境，使用 PowerShell 執行。
+
+```powershell
+# 建立目錄
+New-Item -ItemType Directory -Force -Path C:\fixthreads\config
+New-Item -ItemType Directory -Force -Path C:\fixthreads\generated
 
 # 建立 users.json（可放多組帳號輪替）
-cat > /opt/fixthreads/config/users.json << 'EOF'
+@'
 [
   {
     "id": 1,
@@ -27,10 +31,18 @@ cat > /opt/fixthreads/config/users.json << 'EOF'
     "deviceId": ""
   }
 ]
-EOF
+'@ | Set-Content -Encoding UTF8 C:\fixthreads\config\users.json
 
 # 建立空的 token cache 檔
-echo '{"token":"","timestamp":0,"username":""}' > /opt/fixthreads/generated/token.json
+'{"token":"","timestamp":0,"username":""}' | Set-Content -Encoding UTF8 C:\fixthreads\generated\token.json
+```
+
+volumes 路徑對應改為 Windows 格式：
+
+```yaml
+    volumes:
+      - C:\fixthreads\config\users.json:/build/config/users.json:ro
+      - C:\fixthreads\generated:/build/generated
 ```
 
 ---
@@ -56,8 +68,8 @@ services:
       - PROXIES=                 # 選填：影片 proxy 主機，逗號分隔
 
     volumes:
-      - /opt/fixthreads/config/users.json:/build/config/users.json:ro
-      - /opt/fixthreads/generated:/build/generated
+      - C:\fixthreads\config\users.json:/build/config/users.json:ro
+      - C:\fixthreads\generated:/build/generated
 ```
 
 ---
@@ -96,8 +108,8 @@ services:
       - PROXIES=
 
     volumes:
-      - /opt/fixthreads/config/users.json:/build/config/users.json:ro
-      - /opt/fixthreads/generated:/build/generated
+      - C:\fixthreads\config\users.json:/build/config/users.json:ro
+      - C:\fixthreads\generated:/build/generated
 
     labels:
       - "traefik.enable=true"
