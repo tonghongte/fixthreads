@@ -90,9 +90,7 @@ export default function renderSeo({ type, content }: DataProps) {
         }
 
         <link href="${
-          process.env.ENVIRONMENT == "production"
-            ? "https://fixthreads.net"
-            : "https://local.milanm.cc"
+          process.env.OEMBED_BASE_URL || "http://drhong.ddns.net:9813"
         }/oembed?text=${encodeURIComponent(
           content.oembedStat
         )}&url=${encodeURIComponent(url)}&videoText=${
