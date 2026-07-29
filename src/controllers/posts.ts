@@ -1,8 +1,50 @@
 import express from "express";
+import fetch from "node-fetch";
 import { HttpError } from "../utils/utils";
 import findPost from "../utils/fetch/findPost";
 import renderSeo from "../utils/renderSeo";
 const router = express.Router();
+
+// ponytail: share links 302 to /@user/post/:id — follow once, reuse findPost
+router.get("/share/:shareId", async (req, res, next) => {
+  try {
+    if (!req.params.shareId) return next(new HttpError(400, "No share id provided"));
+
+    const shareRes = await fetch(
+      `https://www.threads.com/share/${req.params.shareId}/`,
+      {
+        redirect: "manual",
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+        },
+      }
+    );
+    const loc = shareRes.headers.get("location") || "";
+    const m = loc.match(/\/@[^/]+\/post\/([^/?#]+)/);
+    if (!m) return next(new HttpError(404, "Post not found"));
+
+    const post = await findPost({
+      post: m[1],
+      userAgent: req.headers["user-agent"] || "",
+    });
+    if (!post || !post.title) {
+      return next(new HttpError(404, "Post not found"));
+    }
+
+    return res.send(
+      renderSeo({
+        type: "post",
+        content: post,
+      })
+    );
+  } catch (e: any) {
+    res.status(500).json({
+      error: true,
+      message: e.message,
+    });
+  }
+});
 
 router.get("/t/:post", async (req, res, next) => {
   try {
