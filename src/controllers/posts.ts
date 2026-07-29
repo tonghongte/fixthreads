@@ -5,27 +5,30 @@ import findPost from "../utils/fetch/findPost";
 import renderSeo from "../utils/renderSeo";
 const router = express.Router();
 
-// ponytail: share links 302 to /@user/post/:id — follow once, reuse findPost
+// ponytail: Chrome UA gets 200 w/o Location on /share — use simple UA for 302
+async function threadsSharePostId(shareId: string): Promise<string | null> {
+  const shareUrl = `https://www.threads.com/share/${shareId}/`;
+  const headers = { "User-Agent": "Mozilla/5.0" };
+
+  const shareRes = await fetch(shareUrl, { redirect: "manual", headers });
+  const loc = shareRes.headers.get("location") || "";
+  let m = loc.match(/\/post\/([^/?#]+)/);
+  if (m) return m[1];
+
+  const followed = await fetch(shareUrl, { redirect: "follow", headers });
+  m = followed.url.match(/\/post\/([^/?#]+)/);
+  return m ? m[1] : null;
+}
+
 router.get("/share/:shareId", async (req, res, next) => {
   try {
     if (!req.params.shareId) return next(new HttpError(400, "No share id provided"));
 
-    const shareRes = await fetch(
-      `https://www.threads.com/share/${req.params.shareId}/`,
-      {
-        redirect: "manual",
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
-        },
-      }
-    );
-    const loc = shareRes.headers.get("location") || "";
-    const m = loc.match(/\/@[^/]+\/post\/([^/?#]+)/);
-    if (!m) return next(new HttpError(404, "Post not found"));
+    const postId = await threadsSharePostId(req.params.shareId);
+    if (!postId) return next(new HttpError(404, "Post not found"));
 
     const post = await findPost({
-      post: m[1],
+      post: postId,
       userAgent: req.headers["user-agent"] || "",
     });
     if (!post || !post.title) {
